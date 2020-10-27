@@ -19,6 +19,7 @@ import os
 today = datetime.date.today()
 mydate = today - datetime.timedelta(days = 1)
 mm = mydate.strftime("%d %B %Y")
+datetochecheck = mm.strip('US$: ')
 
 # Delete sql file before create the new one
 # endor
@@ -40,18 +41,15 @@ if mydate.strftime('%d-%m-%Y') in in_holidays:
     print('it is holidays date :)')
     quit()
 else:
-    # Get the headers
-    headers = { 
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:82.0) Gecko/20100101 Firefox/82.0', 
-    'Accept' : 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 
-    'Accept-Language' : 'en-US,en;q=0.5', 
-    'Accept-Encoding' : 'gzip', 
-    'DNT' : '1', # Do Not Track Request Header 
-    'Connection' : 'close' }
-    
+    # Set cookie
+    session = requests.Session()
+    jar = requests.cookies.RequestsCookieJar()
+    jar.set('PUT HERE THE COOKIE FROM A BROWSER SESSION')
+    session.cookies = jar
+
     # Get the links to be scraped
-    zinc = requests.get('https://www.lme.com', headers=headers)
-    xchange = requests.get('https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/eurofxref-graph-usd.en.html', headers=headers)
+    zinc = session.get('https://www.lme.com')
+    xchange = requests.get('https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/eurofxref-graph-usd.en.html')
 
     # Declare scrape type for each website with BeautifulSoup
     soup_zinc = BeautifulSoup(zinc.content, 'html.parser')
@@ -66,6 +64,8 @@ else:
     # Extract webpage date
     lmeDate = soup_zinc.select_one('th').text.strip()
     print("Date shown from website  : " + lmeDate)
+    print("Date mm                  : " + mm)
+    print("Date datetocheck         : " + datetochecheck)
 
     # Convert string to floats  
     lastdollar = float(zincdollar.replace(',',''))
@@ -73,7 +73,7 @@ else:
     lasteuro = float(lastdollar) /float(exchangerate) # Division of dollar zinc price by currency to get zinc price in euros
     print(lasteuro)
 
-    if(lmeDate == mm):
+    if(mm == datetochecheck):
         print("Date is same from website")
         # Create file with entries into .sql statement format insert query
         f = open('C:/tools/zinc/data/' + str(datetime.date.today()) + '_export_zinc_prices_' + str(uuid.uuid1()) + '.sql', 'w') # the file name contains the current date of execution and unique id number(uuid)
